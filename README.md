@@ -3,7 +3,7 @@
 ## Introduction
 **JWT** (*JSON Web Tokens*) is one of the more popular ways to secure applications. By means of JWT server can recognize previously authenticated users, give exact Authorization rights or even grant access to different services seamlessly. JWT represents encrypted JSON data which can be only read with a secure key stored and accessible only on the server-side. JWT can be permanent or temporary and even has refresh and logout mechanisms. All of them are represented in this application.
 
-This is a secure Node.js user authentication system. It is covering all the security concerns that you will run into while building an authentication system. It also provides encrypted password storing in the DB and a secure authentication process.
+This is a secure Node.js user authentication system. It is covering all the security concerns that you will run into while building an authentication system. It also provides encrypted password storing in the DB and a secure authentication process. It fully encompasses CRUD operations to operate the server. 
 
 ## Some Endpoints
 
@@ -26,12 +26,13 @@ Accept: application/vnd.api+json
 `{
      "data": {
          "type": "users",
-         "id": 3,
+         "id": <uid>,
          "attributes": {
-             "name": "John"
+             "name": "John",
+             "rights": "user"
          },
          "links": {
-             "self": "http://localhost:4000/users/3"
+             "self": "http://localhost:4000/users/<uid>"
          }
      }
  }`
@@ -54,15 +55,19 @@ Accept: application/vnd.api+json
  
  `{
       "data": {
-          "type": "accessAndRefreshTokens",
+          "type": "users",
+          "id": <uid>,
           "attributes": {
               "name": "John",
-              "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYW1lIjoiSm9obiIsInBhc3N3b3JkIjoiJDJiJDEwJFpkMHdEQm1pVEQvOHhNOW5aWUQwWk93cUJyMGVNNUpTZlRjaGpSbnA0eU5DL1hEODNjTnVDIiwiaWF0IjoxNjQ2MjY3ODA5LCJleHAiOjE2NDYyNjc4Mzl9.G38pXxiAKD8HuuwGrdaeOo6Pn2UBWfUFqwJVBbhCE9A",
-              "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYW1lIjoiSm9obiIsInBhc3N3b3JkIjoiJDJiJDEwJFpkMHdEQm1pVEQvOHhNOW5aWUQwWk93cUJyMGVNNUpTZlRjaGpSbnA0eU5DL1hEODNjTnVDIiwiaWF0IjoxNjQ2MjY3ODA5fQ.s26HpnIglad-CoBYwGt_NSpRaba3cmiwFUYSF7wHZAY"
+              "rights": "user"
           },
           "links": {
-              "self": "http://localhost:4000/users/login"
+              "self": "http://localhost:4000/users/<uid>"
           }
+      },
+      "meta": {
+          "accessToken": <accessToken>,
+          "refreshToken": <refreshToken>
       }
   }`
   
@@ -74,13 +79,6 @@ Accept: application/vnd.api+json
   Accept: application/vnd.api+json
   Authorization: Bearer <accessToken>
   
-  `{
-               "data": {
-                   "type": "users",
-                   "attributes": {"name": "John", "password": "secret-ultra-password"}
-               }
-   }`
-  
   **Response**
   
   `{
@@ -90,35 +88,22 @@ Accept: application/vnd.api+json
        "data": [
            {
                "type": "users",
-               "id": 0,
+               "id": <uid>,
                "attributes": {
-                   "name": "John"
-               }
-           },
-           {
-               "type": "users",
-               "id": 1,
-               "attributes": {
-                   "name": "John"
-               }
-           },
-           {
-               "type": "users",
-               "id": 2,
-               "attributes": {
-                   "name": "John"
-               }
-           },
-           {
-               "type": "users",
-               "id": 3,
-               "attributes": {
-                   "name": "John"
+                   "name": "John",
+                   "password": <encrypted password>,
+                   "rights": "user"
+               },
+               "meta": {
+                   "refreshToken": <refreshToken>
+               },
+               "links": {
+                   "self": "http://localhost:4000/<uid>"
                }
            }
        ],
        "meta": {
-           "totalUsers": 4
+           "totalUsers": 1
        }
    }`
    
@@ -132,7 +117,7 @@ Accept: application/vnd.api+json
  `{
               "data": {
                   "type": "refreshToken",
-                  "attributes": {"token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYW1lIjoiSm9obiIsInBhc3N3b3JkIjoiJDJiJDEwJC5MMy9pc1hXdHlMWTVqcjM0amN6QWVyMlREN2EwcDcyMmhXUTFZamlyVmNQczJOMnMybVphIiwiaWF0IjoxNjQ2MjY1MDkwfQ.Z2PjjFObf1unKYctYGJc8JhVcgUamFGvHrKdQwCrzx4"}
+                  "attributes": {"token": <refresh token>}
               }
   }`
  
@@ -145,7 +130,7 @@ Accept: application/vnd.api+json
       "data": {
           "type": "accessToken",
           "attributes": {
-              "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYW1lIjoiSm9obiIsInBhc3N3b3JkIjoiJDJiJDEwJC5MMy9pc1hXdHlMWTVqcjM0amN6QWVyMlREN2EwcDcyMmhXUTFZamlyVmNQczJOMnMybVphIiwiaWF0IjoxNjQ2MjY1MjIxLCJleHAiOjE2NDYyNjUyNTF9.7Tn_ZYt5kOH4uyu8Ha5lF_4E6YhyiTQ0hT8LmfbF4Rg"
+              "token": <refresh token>
           }
       }
   }`
@@ -153,15 +138,41 @@ Accept: application/vnd.api+json
 ### Delete user
  
  **Request**
- DELETE http://localhost:4000/logout
+ DELETE http://localhost:4000/users/1184ad9c-bf6a-4b23-be15-31458defe863
  Content-Type: application/vnd.api+json
  Accept: application/vnd.api+json
+ Authorization: Bearer <accessToken>
  
  `{
               "data": {
                   "type": "refreshToken",
-                  "attributes": {"token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYW1lIjoiSm9obiIsInBhc3N3b3JkIjoiJDJiJDEwJFpkMHdEQm1pVEQvOHhNOW5aWUQwWk93cUJyMGVNNUpTZlRjaGpSbnA0eU5DL1hEODNjTnVDIiwiaWF0IjoxNjQ2MjY1NDQxfQ.n2vMU_mIEGJ317FSBLDs8ro7_6Z9IalJXR6hGe33IyU"}
+                  "attributes": {"token": <refreshToken>}
               }
+  }`
+ 
+ **Response**
+ 
+Status: 204
+No Content
+
+### Update user
+ 
+ **Request**
+ PATCH http://localhost:4000/users/1184ad9c-bf6a-4b23-be15-31458defe863
+ Content-Type: application/vnd.api+json
+ Accept: application/vnd.api+json
+ Authorization: Bearer <accessToken>
+ 
+ `{
+    "data": {
+      "type": "users",
+      "id": <uid>>,
+      "attributes": {
+        "newName": "Jhon Rocks",
+        "oldPassword": "old password",
+        "newPassword": "new password"
+      }
+    }
   }`
  
  **Response**

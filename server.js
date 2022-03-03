@@ -3,7 +3,7 @@ const express = require('express')
 const app = express()
 const bodyParser = require('body-parser')
 
-const handleAuthenticateToken = require('./handleAuthenticateToken')
+const handleAuthenticateToken = require('./authFunctions/handleAuthenticateToken')
 
 const posts = [
     {name: 'Kyle', title: 'Post 1'},
