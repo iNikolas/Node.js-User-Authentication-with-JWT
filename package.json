@@ -18,5 +18,9 @@
     "express": "^4.17.3",
     "jsonwebtoken": "^8.5.1",
     "pg": "^8.7.3"
+  },
+  "devDependencies": {
+    "eslint": "^8.10.0",
+    "prettier": "2.5.1"
   }
 }
