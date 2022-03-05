@@ -109,9 +109,7 @@ module.exports = {
             const {id} = req.params;
 
             const userRequest = await pool.query(
-                `SELECT users.uid, name, password, rights, token FROM users LEFT JOIN refreshtokens ON users.uid = refreshtokens.user_uid WHERE users.uid = $1`,
-                [id]
-            );
+                `SELECT * FROM users WHERE users.uid = $1`, [id]);
             const userRespond = userRequest.rows[0];
 
             const resData = {
@@ -127,12 +125,10 @@ module.exports = {
                 const rights = userRespond.rights;
                 const relationships = null;
                 const password = userRespond.password;
-                const refreshToken = userRespond.token;
 
                 const attributes = {name, rights, password};
 
                 resData.data = {type, id, attributes, relationships};
-                resData.meta = {refreshToken};
             }
 
             req.content = resData;
@@ -342,21 +338,14 @@ module.exports = {
     },
     logoutUser: async (req, res, next) => {
         try {
-            const type = req.body.data.type;
-
-            if (type !== "refreshToken")
-                throw new ServerError(
-                    "Lacks valid authentication credentials for the requested resource!",
-                    401,
-                    "Unauthorized"
-                );
-
-            const refreshToken = req.body.data.attributes.token;
+            const refreshToken = req.cookies.refreshToken
 
             const deleteRefreshTokenRequest = await pool.query(
                 `DELETE FROM refreshtokens WHERE token = $1`,
                 [refreshToken]
             );
+
+            res.cookie('refreshToken', null, {maxAge: 0, httpOnly: true})
 
             const isDeleted = !!deleteRefreshTokenRequest.rowCount;
 

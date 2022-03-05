@@ -20,13 +20,13 @@ app.use(errorController.mediaTypeError)
 app.get("/users", handleAuthenticateToken, handleAuthRole(["admin"]), authServerController.getAllUsers)
 app.get("/users/:id", handleAuthenticateToken, authServerController.getUser, authGetContent)
 
-app.post("/token", authServerController.refreshAccessToken)
 app.post("/users", authServerController.createNewUser)
 app.post("/users/login", authServerController.loginUser)
+app.post("/users/token", authServerController.refreshAccessToken)
 
 app.patch("/users/:id", handleAuthenticateToken, checkRequestValidity, authServerController.updateUser)
 
-app.delete("/logout", authServerController.logoutUser)
+app.delete("/users/logout", authServerController.logoutUser)
 app.delete("/users/:id", handleAuthenticateToken, handleAuthRole(["admin"]), authServerController.deleteUser)
 
 app.use(errorController.internalServerError)
