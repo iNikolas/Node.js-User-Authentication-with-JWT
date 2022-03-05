@@ -9,22 +9,8 @@ const createTokens = require("./createTokens");
 module.exports = {
     refreshAccessToken: async (req, res, next) => {
         try {
-            const type = req.body.data.type;
-
-            if (type !== "refreshToken")
-                throw new ServerError(
-                    "Lacks valid authentication credentials for the requested resource!",
-                    401,
-                    "Unauthorized"
-                );
-
-            const refreshToken = req.body.data.attributes.token;
-            if (!refreshToken)
-                throw new ServerError(
-                    "Lacks valid authentication credentials for the requested resource!",
-                    401,
-                    "Unauthorized"
-                );
+            const refreshToken = req.cookies.refreshToken;
+            if (!refreshToken) throw new ServerError("Lacks valid authentication credentials for the requested resource!", 401, "Unauthorized");
 
             const refreshTokenRequest = await pool.query(
                 `SELECT * FROM refreshtokens WHERE TOKEN = $1`,
@@ -32,22 +18,10 @@ module.exports = {
             );
             const refreshTokenRespond = refreshTokenRequest.rows[0];
 
-            if (!refreshTokenRespond)
-                throw new ServerError(
-                    "Authentication credentials for the requested resource are not valid!",
-                    403,
-                    "Forbidden"
-                );
-            jwt.verify(
-                refreshToken,
-                process.env.REFRESH_TOKEN_SECRET,
-                (err, user) => {
+            if (!refreshTokenRespond) throw new ServerError("Authentication credentials for the requested resource are not valid!", 403, "Forbidden");
+            jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET, (err, user) => {
                     if (err)
-                        throw new ServerError(
-                            "Authentication credentials for the requested resource are not valid!",
-                            403,
-                            "Forbidden"
-                        );
+                        throw new ServerError("Authentication credentials for the requested resource are not valid!", 403, "Forbidden");
 
                     const userSharedData = {
                         name: user.name,
@@ -56,19 +30,28 @@ module.exports = {
                     };
 
                     const accessToken = handleGenerateAccessToken(userSharedData);
+                    const expiresInSec = 300
+
                     const resData = {
                         links: {
-                            self: `http://localhost:4000${req.originalUrl}`,
+                            self: `http://localhost:4000/${user.uid}`,
                         },
                         data: {
-                            type: "accessToken",
+                            type: "users",
+                            id: user.uid,
                             attributes: {
-                                token: accessToken,
+                                name: user.name,
+                                rights: user.rights,
                             },
+                            token: accessToken
                         },
+                        meta: {expiresInSec}
                     };
 
-                    res.set("Content-Type", "application/vnd.api+json");
+                    res.set({
+                        "Content-Type": "application/vnd.api+json",
+                        Location: `http://localhost:4000/users/${user.uid}`,
+                    });
                     res.status(201);
 
                     res.json(resData);
@@ -222,7 +205,7 @@ module.exports = {
             );
             const newUser = newUserRequest.rows[0];
 
-            const tokens = await createTokens(newUser)
+            const {accessToken, refreshToken} = await createTokens(newUser)
 
             const id = newUser.uid;
             const rights = newUser.rights;
@@ -237,9 +220,11 @@ module.exports = {
                     links: {
                         self: `http://localhost:4000/users/${id}`,
                     },
+                    token: accessToken
                 },
-                meta: tokens
             };
+
+            res.cookie('refreshToken', refreshToken, {maxAge: 604800, httpOnly: true})
 
             res.set({
                 "Content-Type": "application/vnd.api+json",
@@ -318,7 +303,7 @@ module.exports = {
 
             if (await bcrypt.compare(password, user.password)) {
 
-                const tokens = await createTokens(user)
+                const {accessToken, refreshToken} = await createTokens(user)
 
                 const resData = {
                     data: {
@@ -331,11 +316,11 @@ module.exports = {
                         links: {
                             self: `http://localhost:4000/users/${id}`,
                         },
+                        token: accessToken
                     },
-                    meta: tokens,
                 };
 
-                console.log(tokens)
+                res.cookie('refreshToken', refreshToken, {maxAge: 604800, httpOnly: true})
 
                 res.set({
                     "Content-Type": "application/vnd.api+json",
