@@ -13,7 +13,7 @@ module.exports = {
             if (!refreshToken) throw new ServerError("Lacks valid authentication credentials for the requested resource!", 401, "Unauthorized");
 
             const refreshTokenRequest = await pool.query(
-                `SELECT * FROM refreshtokens WHERE TOKEN = $1`,
+                `SELECT * FROM refreshtokens, users WHERE refreshtokens.token = $1 AND users.uid = refreshtokens.user_uid`,
                 [refreshToken]
             );
             const refreshTokenRespond = refreshTokenRequest.rows[0];
@@ -23,10 +23,14 @@ module.exports = {
                     if (err)
                         throw new ServerError("Authentication credentials for the requested resource are not valid!", 403, "Forbidden");
 
+                    const name = refreshTokenRespond.name
+                    const id = refreshTokenRespond.uid
+                    const rights = refreshTokenRespond.rights
+
                     const userSharedData = {
-                        name: user.name,
-                        uid: user.uid,
-                        rights: user.rights,
+                        name,
+                        uid: id,
+                        rights,
                     };
 
                     const accessToken = handleGenerateAccessToken(userSharedData);
@@ -38,10 +42,10 @@ module.exports = {
                         },
                         data: {
                             type: "users",
-                            id: user.uid,
+                            id,
                             attributes: {
-                                name: user.name,
-                                rights: user.rights,
+                                name,
+                                rights
                             },
                             token: accessToken
                         },
@@ -182,6 +186,9 @@ module.exports = {
         }
     },
     createNewUser: async (req, res, next) => {
+
+        const client = await pool.connect();
+
         try {
             const type = req.body.data.type;
             const user = req.body.data.attributes;
@@ -195,16 +202,21 @@ module.exports = {
 
             const hashedPassword = await bcrypt.hash(password, 10);
 
-            const newUserRequest = await pool.query(
-                `INSERT INTO ${type} (uid, name, password, rights) VALUES(uuid_generate_v4(), $1, $2, 'user') RETURNING *`,
-                [name, hashedPassword]
-            );
-            const newUser = newUserRequest.rows[0];
+            await client.query("BEGIN");
 
-            const {accessToken, refreshToken} = await createTokens(newUser)
+            const newUserRequestQuery = `INSERT INTO ${type} (uid, name, password, rights) VALUES(uuid_generate_v4(), $1, $2, 'user') RETURNING *`;
+            const newUserRequest = await client.query(newUserRequestQuery, [name, hashedPassword]);
+
+            const newUser = newUserRequest.rows[0];
 
             const id = newUser.uid;
             const rights = newUser.rights;
+
+            await client.query(`CREATE TABLE todos_${id.replace(/-/g, '_')}(todo_uid UUID NOT NULL PRIMARY KEY, description VARCHAR(255) NOT NULL)`)
+            await client.query("COMMIT");
+
+            const {accessToken, refreshToken} = await createTokens(newUser)
+
             const resData = {
                 data: {
                     type: "users",
@@ -220,7 +232,9 @@ module.exports = {
                 },
             };
 
-            res.cookie('refreshToken', refreshToken, {maxAge: 604800, httpOnly: true})
+            const maxAgeDays = 7
+
+            res.cookie('refreshToken', refreshToken, {maxAge: maxAgeDays * 24 * 60 * 60 * 1000, httpOnly: true})
 
             res.set({
                 "Content-Type": "application/vnd.api+json",
@@ -230,6 +244,7 @@ module.exports = {
             res.status(201);
             res.json(resData);
         } catch (error) {
+            await client.query("ROLLBACK");
             next(error);
         }
     },
@@ -252,6 +267,9 @@ module.exports = {
 
             const deleteTokenText = "DELETE FROM refreshtokens WHERE user_uid = $1";
             await client.query(deleteTokenText, [id]);
+
+            const deleteTodosText = `DROP TABLE todos_${id.replace(/-/g, '_')}`
+            await client.query(deleteTodosText)
 
             const deleteUserText = "DELETE FROM users WHERE uid = $1 RETURNING *";
             const deleteUserRes = await client.query(deleteUserText, [id]);
@@ -316,7 +334,12 @@ module.exports = {
                     },
                 };
 
-                res.cookie('refreshToken', refreshToken, {maxAge: 604800, httpOnly: true})
+                const maxAgeDays = 7
+
+                res.cookie('refreshToken', refreshToken, {
+                    maxAge:
+                        maxAgeDays * 24 * 60 * 60 * 1000, httpOnly: true
+                })
 
                 res.set({
                     "Content-Type": "application/vnd.api+json",
