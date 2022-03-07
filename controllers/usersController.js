@@ -1,10 +1,11 @@
 const jwt = require("jsonwebtoken"),
-  { ServerError } = require("./errorController")
+  { ServerError } = require("./errorController"),
+  { HOST } = require("../common/constants");
 
 const handleGenerateAccessToken = require("../authFunctions/handleGenerateAccessToken"),
   bcrypt = require("bcrypt"),
   pool = require("../db/ormSettings"),
-  createTokens = require("./createTokens")
+  createTokens = require("./createTokens");
 
 module.exports = {
   refreshAccessToken: async (req, res, next) => {
@@ -38,7 +39,7 @@ module.exports = {
 
           const resData = {
             links: {
-              self: `http://localhost:4000/${user.uid}`
+              self: `${HOST}/${user.uid}`
             },
             data: {
               type: "users",
@@ -54,7 +55,7 @@ module.exports = {
 
           res.set({
             "Content-Type": "application/vnd.api+json",
-            Location: `http://localhost:4000/users/${user.uid}`
+            Location: `${HOST}/users/${user.uid}`
           });
           res.status(201);
 
@@ -74,7 +75,7 @@ module.exports = {
 
       const resData = {
         links: {
-          self: `http://localhost:4000${req.originalUrl}`
+          self: `${HOST}${req.originalUrl}`
         },
         data: [],
         meta: { totalUsers: allUsersRespond.length }
@@ -93,7 +94,7 @@ module.exports = {
           id,
           attributes: { name, password, rights },
           meta: { refreshToken },
-          links: { self: `http://localhost:4000/${id}` }
+          links: { self: `${HOST}/${id}` }
         };
 
         resData.data.push(userData);
@@ -118,7 +119,7 @@ module.exports = {
 
       const resData = {
         links: {
-          self: `http://localhost:5000${req.originalUrl}`
+          self: `${HOST}${req.originalUrl}`
         },
         data: null
       };
@@ -226,7 +227,7 @@ module.exports = {
             rights
           },
           links: {
-            self: `http://localhost:4000/users/${id}`
+            self: `${HOST}/users/${id}`
           },
           token: accessToken
         }
@@ -238,7 +239,7 @@ module.exports = {
 
       res.set({
         "Content-Type": "application/vnd.api+json",
-        Location: `http:/localhost:4000/users/${id}`
+        Location: `${HOST}/users/${id}`
       });
 
       res.status(201);
@@ -328,7 +329,7 @@ module.exports = {
               rights: user.rights
             },
             links: {
-              self: `http://localhost:4000/users/${id}`
+              self: `${HOST}/users/${id}`
             },
             token: accessToken
           }
@@ -343,7 +344,7 @@ module.exports = {
 
         res.set({
           "Content-Type": "application/vnd.api+json",
-          Location: `http://localhost:4000/users/${id}`
+          Location: `${HOST}/users/${id}`
         });
         res.status(201);
 
