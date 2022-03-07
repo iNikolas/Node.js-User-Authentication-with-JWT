@@ -237,7 +237,7 @@ module.exports = {
 
       const maxAgeDays = 7;
 
-      res.cookie("refreshToken", refreshToken, { maxAge: maxAgeDays * 24 * 60 * 60 * 1000, httpOnly: true, sameSite: 'none' });
+      res.cookie("refreshToken", refreshToken, { maxAge: maxAgeDays * 24 * 60 * 60 * 1000, httpOnly: true, sameSite: 'none', secure: true });
 
       res.set({
         "Content-Type": "application/vnd.api+json",
@@ -339,7 +339,7 @@ module.exports = {
 
         const maxAgeDays = 7;
 
-        res.cookie("refreshToken", refreshToken, {maxAge: maxAgeDays * 24 * 60 * 60 * 1000, httpOnly: true, sameSite: 'none'});
+        res.cookie("refreshToken", refreshToken, {maxAge: maxAgeDays * 24 * 60 * 60 * 1000, httpOnly: true, sameSite: 'none', secure: true});
 
         res.set({
           "Content-Type": "application/vnd.api+json",
@@ -368,7 +368,7 @@ module.exports = {
         [refreshToken]
       );
 
-      res.cookie("refreshToken", null, { maxAge: 0, httpOnly: true, sameSite: 'none' });
+      res.cookie("refreshToken", null, { maxAge: 0, httpOnly: true, sameSite: 'none', secure: true });
 
       const isDeleted = !!deleteRefreshTokenRequest.rowCount;
 
