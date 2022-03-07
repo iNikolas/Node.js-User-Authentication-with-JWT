@@ -1,4 +1,5 @@
-const { ServerError } = require("../controllers/errorController");
+const { ServerError } = require("../controllers/errorController")
+
 const canViewContent = (user, content) => {
   return user.rights === "admin" || user.uid === content.data.id;
 };

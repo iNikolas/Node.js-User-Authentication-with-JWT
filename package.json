@@ -4,8 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "server": "nodemon server.js",
-    "authServer": "nodemon authServer.js",
+    "start":"node index.js",
+    "startDev": "nodemon index.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
@@ -22,7 +22,6 @@
     "pg": "^8.7.3"
   },
   "devDependencies": {
-    "eslint": "^8.10.0",
     "prettier": "2.5.1"
   }
 }
