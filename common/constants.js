@@ -1,3 +1,3 @@
-const HOST = 'https://pern-todos-app.herokuapp.com'
+const HOST = "https://pern-todos-app.herokuapp.com";
 
-exports = HOST
+module.exports = { HOST };

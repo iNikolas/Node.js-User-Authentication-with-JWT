@@ -2,6 +2,8 @@ const jwt = require("jsonwebtoken"),
   { ServerError } = require("./errorController"),
   { HOST } = require("../common/constants");
 
+console.log(HOST)
+
 const handleGenerateAccessToken = require("../authFunctions/handleGenerateAccessToken"),
   bcrypt = require("bcrypt"),
   pool = require("../db/ormSettings"),
