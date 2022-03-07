@@ -1,6 +1,7 @@
 # User Authentication and Authorization with JWT
 
 ## Introduction
+
 **JWT** (_JSON Web Tokens_) is one of the more popular ways to secure applications. By means of JWT server can recognize previously authenticated users, give exact Authorization rights or even grant access to different services seamlessly. JWT represents encrypted JSON data which can be only read with a secure key stored and accessible only on the server-side. JWT can be permanent or temporary and even has refresh and logout mechanisms. All of them are represented in this application.
 
 This is a secure Node.js user authentication system. It is covering all the security concerns that you will run into while building an authentication system. It also provides encrypted password storing in the DB and a secure authentication process. It fully encompasses CRUD operations to operate the server.

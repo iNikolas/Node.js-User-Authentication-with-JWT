@@ -8,11 +8,14 @@ const createTokens = async (user) => {
   const userSharedData = {
     name: user.name,
     uid: id,
-    rights: user.rights
+    rights: user.rights,
   };
 
   const accessToken = handleGenerateAccessToken(userSharedData);
-  const refreshToken = jwt.sign(userSharedData, process.env.REFRESH_TOKEN_SECRET);
+  const refreshToken = jwt.sign(
+    userSharedData,
+    process.env.REFRESH_TOKEN_SECRET
+  );
 
   await pool.query(
     `INSERT INTO refreshTokens (uid, token, user_uid) VALUES (uuid_generate_v4(), $1, $2)

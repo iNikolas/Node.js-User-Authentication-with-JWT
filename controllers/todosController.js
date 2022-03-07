@@ -4,14 +4,16 @@ const pool = require("../db/ormSettings"),
 module.exports = {
   createTodo: async (req, res, next) => {
     try {
-
       const user = req.user;
       const id = user.uid;
 
       const todosTableName = `todos_${id.replace(/-/g, "_")}`;
 
       const description = req.body.data.attributes.description || null;
-      const newTodoRequest = await pool.query(`INSERT INTO ${todosTableName} (todo_uid, description) VALUES(uuid_generate_v4(), $1) RETURNING *`, [description]);
+      const newTodoRequest = await pool.query(
+        `INSERT INTO ${todosTableName} (todo_uid, description) VALUES(uuid_generate_v4(), $1) RETURNING *`,
+        [description]
+      );
       const newTodo = newTodoRequest.rows[0];
       const todo_uid = newTodo.todo_uid;
       const resData = {
@@ -19,17 +21,17 @@ module.exports = {
           type: "todo",
           id: todo_uid,
           attributes: {
-            description: newTodo.description
+            description: newTodo.description,
           },
           links: {
-            self: `${HOST}/todos/${todo_uid}`
-          }
-        }
+            self: `${HOST}/todos/${todo_uid}`,
+          },
+        },
       };
 
       res.set({
         "Content-Type": "application/vnd.api+json",
-        "Location": `${HOST}/todos/${todo_uid}`
+        Location: `${HOST}/todos/${todo_uid}`,
       });
       res.status(201);
       res.json(resData);
@@ -39,7 +41,6 @@ module.exports = {
   },
   getTodos: async (req, res, next) => {
     try {
-
       const user = req.user;
       const id = user.uid;
 
@@ -49,9 +50,12 @@ module.exports = {
       const offset = page?.offset;
       const limit = page?.limit;
       const offSetQueryString = offset ? ` OFFSET ${offset}` : "";
-      const limitQueryString = limit === undefined ? "" : ` LIMIT ${+limit || 5}`;
+      const limitQueryString =
+        limit === undefined ? "" : ` LIMIT ${+limit || 5}`;
 
-      const allTodosRequest = await pool.query(`SELECT * FROM ${todosTableName}${offSetQueryString + limitQueryString}`);
+      const allTodosRequest = await pool.query(
+        `SELECT * FROM ${todosTableName}${offSetQueryString + limitQueryString}`
+      );
       const allTodos = allTodosRequest.rows;
       const resData = {
         links: {
@@ -59,14 +63,16 @@ module.exports = {
           first: null,
           prev: null,
           next: null,
-          last: null
+          last: null,
         },
         data: [],
-        meta: {}
+        meta: {},
       };
 
       if (limitQueryString) {
-        const totalTodosCountRaw = await pool.query(`SELECT COUNT(*) FROM ${todosTableName}`);
+        const totalTodosCountRaw = await pool.query(
+          `SELECT COUNT(*) FROM ${todosTableName}`
+        );
         const totalTodosCount = totalTodosCountRaw.rows[0].count;
         const totalPages = Math.ceil(totalTodosCount / limit);
         const currentPage = Math.ceil(offset / limit) + 1;
@@ -76,19 +82,29 @@ module.exports = {
         resData.meta.currentPage = currentPage;
         resData.meta.totalTodos = totalTodosCount;
         links.first = `${HOST}/todos?page[offset]=0&page[limit]=${limit}`;
-        links.last = `${HOST}/todos?page[offset]=${(totalPages - 1) * limit}&page[limit]=${limit}`;
+        links.last = `${HOST}/todos?page[offset]=${
+          (totalPages - 1) * limit
+        }&page[limit]=${limit}`;
 
         const prevOffsetRaw = offset - limit;
-        const prevOffset = (prevOffsetRaw < 0 && Math.abs(prevOffsetRaw) < limit) ? 0 : prevOffsetRaw;
-        links.prev = (prevOffset >= 0) ? `${HOST}/todos?page[offset]=${prevOffset}&page[limit]=${limit}` : null;
+        const prevOffset =
+          prevOffsetRaw < 0 && Math.abs(prevOffsetRaw) < limit
+            ? 0
+            : prevOffsetRaw;
+        links.prev =
+          prevOffset >= 0
+            ? `${HOST}/todos?page[offset]=${prevOffset}&page[limit]=${limit}`
+            : null;
 
         const nextOffset = +offset + +limit;
         const maxPageOffset = totalTodosCount - 1;
-        links.next = nextOffset > maxPageOffset ? null : `${HOST}/todos?page[offset]=${nextOffset}&page[limit]=${limit}`;
-
+        links.next =
+          nextOffset > maxPageOffset
+            ? null
+            : `${HOST}/todos?page[offset]=${nextOffset}&page[limit]=${limit}`;
       }
 
-      allTodos.forEach(todo => {
+      allTodos.forEach((todo) => {
         const type = "todos";
         const id = todo.todo_uid;
         const description = todo.description;
@@ -98,7 +114,7 @@ module.exports = {
       });
 
       res.set({
-        "Content-Type": "application/vnd.api+json"
+        "Content-Type": "application/vnd.api+json",
       });
       res.status(200);
       res.json(resData);
@@ -108,20 +124,22 @@ module.exports = {
   },
   getTodo: async (req, res, next) => {
     try {
-
       const user = req.user;
       const id = user.uid;
 
       const todosTableName = `todos_${id.replace(/-/g, "_")}`;
 
       const { id: todoId } = req.params;
-      const todoRequest = await pool.query(`SELECT * FROM ${todosTableName} WHERE todo_uid = $1`, [todoId]);
+      const todoRequest = await pool.query(
+        `SELECT * FROM ${todosTableName} WHERE todo_uid = $1`,
+        [todoId]
+      );
       const todoData = todoRequest.rows;
       const resData = {
         links: {
-          self: `${HOST}${req.originalUrl}`
+          self: `${HOST}${req.originalUrl}`,
         },
-        data: null
+        data: null,
       };
 
       if (todoData.length) {
@@ -132,7 +150,7 @@ module.exports = {
         resData.data = { type, id, attributes: { description }, relationships };
       }
       res.set({
-        "Content-Type": "application/vnd.api+json"
+        "Content-Type": "application/vnd.api+json",
       });
       res.status(200);
       res.json(resData);
@@ -150,24 +168,33 @@ module.exports = {
 
       const todosTableName = `todos_${tableId.replace(/-/g, "_")}`;
 
-      if (todoParamsId !== todoBodyId) throw new Error("Request param's ID and body ID doesn't match!");
+      if (todoParamsId !== todoBodyId)
+        throw new Error("Request param's ID and body ID doesn't match!");
 
       const description = req.body.data.attributes.description;
       const type = req.body.data.type;
-      const updateTodoRaw = await pool.query(`UPDATE ${todosTableName} SET description = $1 WHERE todo_uid = $2 RETURNING *`, [description, todoParamsId]);
+      const updateTodoRaw = await pool.query(
+        `UPDATE ${todosTableName} SET description = $1 WHERE todo_uid = $2 RETURNING *`,
+        [description, todoParamsId]
+      );
       const updateTodo = updateTodoRaw.rows[0];
 
       if (!updateTodo) next();
 
       const resData = {
         links: {
-          self: `${HOST}${req.originalUrl}`
+          self: `${HOST}${req.originalUrl}`,
         },
-        data: null
+        data: null,
       };
 
       const relationships = null;
-      resData.data = { type, id: todoParamsId, attributes: { description }, relationships };
+      resData.data = {
+        type,
+        id: todoParamsId,
+        attributes: { description },
+        relationships,
+      };
 
       res.json(resData);
     } catch (err) {
@@ -176,14 +203,16 @@ module.exports = {
   },
   deleteTodo: async (req, res, next) => {
     try {
-
       const user = req.user;
       const tableId = user.uid;
 
       const todosTableName = `todos_${tableId.replace(/-/g, "_")}`;
 
       const { id: todoId } = req.params;
-      const deleteTodo = await pool.query(`DELETE FROM ${todosTableName} WHERE todo_uid = $1 RETURNING *`, [todoId]);
+      const deleteTodo = await pool.query(
+        `DELETE FROM ${todosTableName} WHERE todo_uid = $1 RETURNING *`,
+        [todoId]
+      );
 
       if (deleteTodo.rowCount >= 1) {
         res.status(204);
@@ -194,5 +223,5 @@ module.exports = {
     } catch (err) {
       next(err);
     }
-  }
+  },
 };

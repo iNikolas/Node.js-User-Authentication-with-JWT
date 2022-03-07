@@ -2,8 +2,6 @@ const jwt = require("jsonwebtoken"),
   { ServerError } = require("./errorController"),
   { HOST } = require("../common/constants");
 
-console.log(HOST)
-
 const handleGenerateAccessToken = require("../authFunctions/handleGenerateAccessToken"),
   bcrypt = require("bcrypt"),
   pool = require("../db/ormSettings"),
@@ -13,7 +11,12 @@ module.exports = {
   refreshAccessToken: async (req, res, next) => {
     try {
       const refreshToken = req.cookies.refreshToken;
-      if (!refreshToken) throw new ServerError("Lacks valid authentication credentials for the requested resource!", 401, "Unauthorized");
+      if (!refreshToken)
+        throw new ServerError(
+          "Lacks valid authentication credentials for the requested resource!",
+          401,
+          "Unauthorized"
+        );
 
       const refreshTokenRequest = await pool.query(
         `SELECT * FROM refreshtokens, users WHERE refreshtokens.token = $1 AND users.uid = refreshtokens.user_uid`,
@@ -21,10 +24,22 @@ module.exports = {
       );
       const refreshTokenRespond = refreshTokenRequest.rows[0];
 
-      if (!refreshTokenRespond) throw new ServerError("Authentication credentials for the requested resource are not valid!", 403, "Forbidden");
-      jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET, (err, user) => {
+      if (!refreshTokenRespond)
+        throw new ServerError(
+          "Authentication credentials for the requested resource are not valid!",
+          403,
+          "Forbidden"
+        );
+      jwt.verify(
+        refreshToken,
+        process.env.REFRESH_TOKEN_SECRET,
+        (err, user) => {
           if (err)
-            throw new ServerError("Authentication credentials for the requested resource are not valid!", 403, "Forbidden");
+            throw new ServerError(
+              "Authentication credentials for the requested resource are not valid!",
+              403,
+              "Forbidden"
+            );
 
           const name = refreshTokenRespond.name;
           const id = refreshTokenRespond.uid;
@@ -33,7 +48,7 @@ module.exports = {
           const userSharedData = {
             name,
             uid: id,
-            rights
+            rights,
           };
 
           const accessToken = handleGenerateAccessToken(userSharedData);
@@ -41,23 +56,23 @@ module.exports = {
 
           const resData = {
             links: {
-              self: `${HOST}/${user.uid}`
+              self: `${HOST}/${user.uid}`,
             },
             data: {
               type: "users",
               id,
               attributes: {
                 name,
-                rights
+                rights,
               },
-              token: accessToken
+              token: accessToken,
             },
-            meta: { expiresInSec }
+            meta: { expiresInSec },
           };
 
           res.set({
             "Content-Type": "application/vnd.api+json",
-            Location: `${HOST}/users/${user.uid}`
+            Location: `${HOST}/users/${user.uid}`,
           });
           res.status(201);
 
@@ -77,10 +92,10 @@ module.exports = {
 
       const resData = {
         links: {
-          self: `${HOST}${req.originalUrl}`
+          self: `${HOST}${req.originalUrl}`,
         },
         data: [],
-        meta: { totalUsers: allUsersRespond.length }
+        meta: { totalUsers: allUsersRespond.length },
       };
 
       allUsersRespond.forEach((user) => {
@@ -96,14 +111,14 @@ module.exports = {
           id,
           attributes: { name, password, rights },
           meta: { refreshToken },
-          links: { self: `${HOST}/${id}` }
+          links: { self: `${HOST}/${id}` },
         };
 
         resData.data.push(userData);
       });
 
       res.set({
-        "Content-Type": "application/vnd.api+json"
+        "Content-Type": "application/vnd.api+json",
       });
       res.status(200);
       res.json(resData);
@@ -116,14 +131,16 @@ module.exports = {
       const { id } = req.params;
 
       const userRequest = await pool.query(
-        `SELECT * FROM users WHERE users.uid = $1`, [id]);
+        `SELECT * FROM users WHERE users.uid = $1`,
+        [id]
+      );
       const userRespond = userRequest.rows[0];
 
       const resData = {
         links: {
-          self: `${HOST}${req.originalUrl}`
+          self: `${HOST}${req.originalUrl}`,
         },
-        data: null
+        data: null,
       };
 
       if (userRespond) {
@@ -189,7 +206,6 @@ module.exports = {
     }
   },
   createNewUser: async (req, res, next) => {
-
     const client = await pool.connect();
 
     try {
@@ -199,23 +215,39 @@ module.exports = {
       const password = user.password;
 
       if (type !== "users")
-        throw new ServerError("Lacks valid authentication credentials for the requested resource!", 401, "Unauthorized");
+        throw new ServerError(
+          "Lacks valid authentication credentials for the requested resource!",
+          401,
+          "Unauthorized"
+        );
       if (!name || !password)
-        throw new ServerError("Username or password can't be empty!", 401, "Unauthorized");
+        throw new ServerError(
+          "Username or password can't be empty!",
+          401,
+          "Unauthorized"
+        );
 
       const hashedPassword = await bcrypt.hash(password, 10);
 
       await client.query("BEGIN");
 
       const newUserRequestQuery = `INSERT INTO ${type} (uid, name, password, rights) VALUES(uuid_generate_v4(), $1, $2, 'user') RETURNING *`;
-      const newUserRequest = await client.query(newUserRequestQuery, [name, hashedPassword]);
+      const newUserRequest = await client.query(newUserRequestQuery, [
+        name,
+        hashedPassword,
+      ]);
 
       const newUser = newUserRequest.rows[0];
 
       const id = newUser.uid;
       const rights = newUser.rights;
 
-      await client.query(`CREATE TABLE todos_${id.replace(/-/g, "_")}(todo_uid UUID NOT NULL PRIMARY KEY, description VARCHAR(255) NOT NULL)`);
+      await client.query(
+        `CREATE TABLE todos_${id.replace(
+          /-/g,
+          "_"
+        )}(todo_uid UUID NOT NULL PRIMARY KEY, description VARCHAR(255) NOT NULL)`
+      );
       await client.query("COMMIT");
 
       const { accessToken, refreshToken } = await createTokens(newUser);
@@ -226,22 +258,27 @@ module.exports = {
           id,
           attributes: {
             name,
-            rights
+            rights,
           },
           links: {
-            self: `${HOST}/users/${id}`
+            self: `${HOST}/users/${id}`,
           },
-          token: accessToken
-        }
+          token: accessToken,
+        },
       };
 
       const maxAgeDays = 7;
 
-      res.cookie("refreshToken", refreshToken, { maxAge: maxAgeDays * 24 * 60 * 60 * 1000, httpOnly: true, sameSite: 'none', secure: true });
+      res.cookie("refreshToken", refreshToken, {
+        maxAge: maxAgeDays * 24 * 60 * 60 * 1000,
+        httpOnly: true,
+        sameSite: "none",
+        secure: true,
+      });
 
       res.set({
         "Content-Type": "application/vnd.api+json",
-        Location: `${HOST}/users/${id}`
+        Location: `${HOST}/users/${id}`,
       });
 
       res.status(201);
@@ -319,7 +356,6 @@ module.exports = {
       const id = user.uid;
 
       if (await bcrypt.compare(password, user.password)) {
-
         const { accessToken, refreshToken } = await createTokens(user);
 
         const resData = {
@@ -328,22 +364,27 @@ module.exports = {
             id,
             attributes: {
               name: user.name,
-              rights: user.rights
+              rights: user.rights,
             },
             links: {
-              self: `${HOST}/users/${id}`
+              self: `${HOST}/users/${id}`,
             },
-            token: accessToken
-          }
+            token: accessToken,
+          },
         };
 
         const maxAgeDays = 7;
 
-        res.cookie("refreshToken", refreshToken, {maxAge: maxAgeDays * 24 * 60 * 60 * 1000, httpOnly: true, sameSite: 'none', secure: true});
+        res.cookie("refreshToken", refreshToken, {
+          maxAge: maxAgeDays * 24 * 60 * 60 * 1000,
+          httpOnly: true,
+          sameSite: "none",
+          secure: true,
+        });
 
         res.set({
           "Content-Type": "application/vnd.api+json",
-          Location: `${HOST}/users/${id}`
+          Location: `${HOST}/users/${id}`,
         });
         res.status(201);
 
@@ -368,7 +409,12 @@ module.exports = {
         [refreshToken]
       );
 
-      res.cookie("refreshToken", null, { maxAge: 0, httpOnly: true, sameSite: 'none', secure: true });
+      res.cookie("refreshToken", null, {
+        maxAge: 0,
+        httpOnly: true,
+        sameSite: "none",
+        secure: true,
+      });
 
       const isDeleted = !!deleteRefreshTokenRequest.rowCount;
 
@@ -381,5 +427,5 @@ module.exports = {
     } catch (err) {
       next(err);
     }
-  }
+  },
 };

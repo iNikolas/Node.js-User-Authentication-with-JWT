@@ -54,7 +54,7 @@ function handleErrorSubmit(error, req, res) {
 
   const resData = {
     jsonapi: { version: "1.0" },
-    errors: [Object.assign(error, { source: { pointer } })]
+    errors: [Object.assign(error, { source: { pointer } })],
   };
   res.json(resData);
 }
