@@ -1,7 +1,3 @@
-CREATE DATABASE todousers;
-
-\c todousers
-
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 CREATE TABLE users(

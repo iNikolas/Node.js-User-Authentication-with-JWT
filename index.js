@@ -14,6 +14,7 @@ const handleAuthenticateToken = require("./authFunctions/handleAuthenticateToken
   todoController = require("./controllers/todosController"),
   { authGetContent, checkRequestValidity } = require("./permissions/user")
 
+app.set("port", process.env.PORT || 4000)
 app.use("/", router)
 
 router.use(cors({ origin: "http://localhost:3000", credentials: true }))
@@ -43,4 +44,7 @@ router.get("/users/:id", handleAuthenticateToken, authServerController.getUser, 
 router.use(errorController.internalServerError)
 router.use(errorController.pageNotFoundError)
 
-app.listen(4000)
+app.listen(
+  app.get("port"),
+  () => console.log(`Server has been started and listening at the port number: ${app.get("port")}`)
+);
