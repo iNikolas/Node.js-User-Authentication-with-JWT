@@ -18,7 +18,12 @@ app.set("port", process.env.PORT || 4000);
 app.use("/", router);
 
 router
-  .use(cors({ origin: "https://inikolas.github.io", credentials: true }))
+  .use(
+    cors({
+      origin: /*"http://localhost:3000"*/ "https://inikolas.github.io",
+      credentials: true,
+    })
+  )
   .use(cookieParser())
   .use(bodyParser.json({ type: "application/vnd.api+json" }))
   .use(errorController.mediaTypeError);

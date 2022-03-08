@@ -11,17 +11,21 @@ module.exports = {
 
       const description = req.body.data.attributes.description || null;
       const newTodoRequest = await pool.query(
-        `INSERT INTO ${todosTableName} (todo_uid, description) VALUES(uuid_generate_v4(), $1) RETURNING *`,
+        `INSERT INTO ${todosTableName} (todo_uid, created, description) VALUES(uuid_generate_v4(), clock_timestamp(), $1) RETURNING *`,
         [description]
       );
       const newTodo = newTodoRequest.rows[0];
+
+      const created = newTodo.created;
       const todo_uid = newTodo.todo_uid;
+
       const resData = {
         data: {
           type: "todo",
           id: todo_uid,
           attributes: {
             description: newTodo.description,
+            timestamps: { created },
           },
           links: {
             self: `${HOST}/todos/${todo_uid}`,
@@ -106,9 +110,13 @@ module.exports = {
 
       allTodos.forEach((todo) => {
         const type = "todos";
-        const id = todo.todo_uid;
-        const description = todo.description;
-        const todoData = { type, id, attributes: { description } };
+        const { description, created, todo_uid: id } = todo;
+
+        const todoData = {
+          type,
+          id,
+          attributes: { description, timestamps: { created } },
+        };
 
         resData.data.push(todoData);
       });
@@ -143,11 +151,14 @@ module.exports = {
       };
 
       if (todoData.length) {
-        const type = "todo";
-        const id = todoData[0].todo_uid;
-        const description = todoData[0].description;
-        const relationships = null;
-        resData.data = { type, id, attributes: { description }, relationships };
+        const type = "todos";
+        const { description, created, todo_uid: id } = todoData[0];
+        resData.data = {
+          type,
+          id,
+          attributes: { description, timestamps: { created } },
+          relationships: null,
+        };
       }
       res.set({
         "Content-Type": "application/vnd.api+json",
@@ -188,12 +199,14 @@ module.exports = {
         data: null,
       };
 
-      const relationships = null;
       resData.data = {
         type,
         id: todoParamsId,
-        attributes: { description },
-        relationships,
+        attributes: {
+          description,
+          timestamps: { created: updateTodo.created },
+        },
+        relationships: null,
       };
 
       res.json(resData);
