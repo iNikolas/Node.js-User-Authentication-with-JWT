@@ -53,17 +53,19 @@ module.exports = {
       const page = req.query.page;
       const offset = page?.offset;
       const limit = page?.limit;
-      const offSetQueryString = offset ? ` OFFSET ${offset}` : "";
+      const offSetQueryString = offset ? `OFFSET ${offset}` : "";
       const limitQueryString =
         limit === undefined ? "" : ` LIMIT ${+limit || 5}`;
 
       const allTodosRequest = await pool.query(
-        `SELECT * FROM ${todosTableName}${offSetQueryString + limitQueryString}`
+        `SELECT * FROM ${todosTableName} ORDER BY created DESC ${
+          offSetQueryString + limitQueryString
+        }`
       );
       const allTodos = allTodosRequest.rows;
       const resData = {
         links: {
-          self: `${HOST}}${req.originalUrl}`,
+          self: `${HOST}${req.originalUrl}`,
           first: null,
           prev: null,
           next: null,
