@@ -20,7 +20,7 @@ app.use("/", router);
 router
   .use(
     cors({
-      origin: "http://localhost:3000" /*"https://inikolas.github.io"*/,
+      origin: /*"http://localhost:3000"*/ "https://inikolas.github.io",
       credentials: true,
     })
   )
