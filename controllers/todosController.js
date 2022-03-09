@@ -1,5 +1,6 @@
 const pool = require("../db/ormSettings"),
-  { HOST } = require("../common/constants");
+  { HOST } = require("../common/constants"),
+  resTemplates = require("./helpers/respondTemplates");
 
 module.exports = {
   createTodo: async (req, res, next) => {
@@ -45,6 +46,9 @@ module.exports = {
   },
   getTodos: async (req, res, next) => {
     try {
+      const cache = req.cache;
+      if (cache) return resTemplates.res200(res, JSON.parse(cache));
+
       const user = req.user;
       const id = user.uid;
 
@@ -123,11 +127,8 @@ module.exports = {
         resData.data.push(todoData);
       });
 
-      res.set({
-        "Content-Type": "application/vnd.api+json",
-      });
-      res.status(200);
-      res.json(resData);
+      req.resData = resData;
+      next();
     } catch (err) {
       next(err);
     }

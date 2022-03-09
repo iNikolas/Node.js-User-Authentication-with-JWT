@@ -19,7 +19,8 @@
     "dotenv": "^16.0.0",
     "express": "^4.17.3",
     "jsonwebtoken": "^8.5.1",
-    "pg": "^8.7.3"
+    "pg": "^8.7.3",
+    "redis": "^4.0.4"
   },
   "devDependencies": {
     "prettier": "2.5.1"

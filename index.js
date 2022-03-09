@@ -12,7 +12,9 @@ const express = require("express"),
 const handleAuthenticateToken = require("./authFunctions/handleAuthenticateToken"),
   handleAuthRole = require("./authFunctions/handleAuthRole"),
   todoController = require("./controllers/todosController"),
-  { authGetContent, checkRequestValidity } = require("./permissions/user");
+  { authGetContent, checkRequestValidity } = require("./permissions/user"),
+  redis = require("./redis/main"),
+  isProduction = process.env.NODE_ENV === "production";
 
 app.set("port", process.env.PORT || 4000);
 app.use("/", router);
@@ -20,7 +22,9 @@ app.use("/", router);
 router
   .use(
     cors({
-      origin: /*"http://localhost:3000"*/ "https://inikolas.github.io",
+      origin: isProduction
+        ? "https://inikolas.github.io"
+        : "http://localhost:3000",
       credentials: true,
     })
   )
@@ -29,13 +33,34 @@ router
   .use(errorController.mediaTypeError);
 
 router
-  .get("/todos", handleAuthenticateToken, todoController.getTodos)
-  .post("/todos", handleAuthenticateToken, todoController.createTodo);
+  .get(
+    "/todos",
+    handleAuthenticateToken,
+    redis.checkRedisCache,
+    todoController.getTodos,
+    redis.setRedisCache
+  )
+  .post(
+    "/todos",
+    handleAuthenticateToken,
+    redis.flushRedisCache,
+    todoController.createTodo
+  );
 
 router
   .get("/todos/:id", handleAuthenticateToken, todoController.getTodo)
-  .put("/todos/:id", handleAuthenticateToken, todoController.updateTodo)
-  .delete("/todos/:id", handleAuthenticateToken, todoController.deleteTodo);
+  .put(
+    "/todos/:id",
+    handleAuthenticateToken,
+    redis.flushRedisCache,
+    todoController.updateTodo
+  )
+  .delete(
+    "/todos/:id",
+    handleAuthenticateToken,
+    redis.flushRedisCache,
+    todoController.deleteTodo
+  );
 
 router
   .get(
