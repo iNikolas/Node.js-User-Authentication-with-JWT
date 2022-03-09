@@ -12,7 +12,7 @@ module.exports = {
 
       const description = req.body.data.attributes.description || null;
       const newTodoRequest = await pool.query(
-        `INSERT INTO ${todosTableName} (todo_uid, created, description) VALUES(uuid_generate_v4(), clock_timestamp(), $1) RETURNING *`,
+        `INSERT INTO ${todosTableName} (todo_uid, created, is_done, description) VALUES(uuid_generate_v4(), clock_timestamp(), FALSE, $1) RETURNING *`,
         [description]
       );
       const newTodo = newTodoRequest.rows[0];
@@ -27,6 +27,7 @@ module.exports = {
           attributes: {
             description: newTodo.description,
             timestamps: { created },
+            isDone: newTodo.is_done
           },
           links: {
             self: `${HOST}/todos/${todo_uid}`,
@@ -116,12 +117,12 @@ module.exports = {
 
       allTodos.forEach((todo) => {
         const type = "todos";
-        const { description, created, todo_uid: id } = todo;
+        const { description, created, todo_uid: id, is_done: isDone } = todo;
 
         const todoData = {
           type,
           id,
-          attributes: { description, timestamps: { created } },
+          attributes: { description, timestamps: { created }, isDone },
         };
 
         resData.data.push(todoData);
@@ -155,11 +156,11 @@ module.exports = {
 
       if (todoData.length) {
         const type = "todos";
-        const { description, created, todo_uid: id } = todoData[0];
+        const { description, created, todo_uid: id, is_done: isDone } = todoData[0];
         resData.data = {
           type,
           id,
-          attributes: { description, timestamps: { created } },
+          attributes: { description, timestamps: { created }, isDone },
           relationships: null,
         };
       }
@@ -185,11 +186,11 @@ module.exports = {
       if (todoParamsId !== todoBodyId)
         throw new Error("Request param's ID and body ID doesn't match!");
 
-      const description = req.body.data.attributes.description;
+      const { description, isDone } = req.body.data.attributes;
       const type = req.body.data.type;
       const updateTodoRaw = await pool.query(
-        `UPDATE ${todosTableName} SET description = $1 WHERE todo_uid = $2 RETURNING *`,
-        [description, todoParamsId]
+        `UPDATE ${todosTableName} SET description = $1, is_done = $2 WHERE todo_uid = $3 RETURNING *`,
+        [description, isDone, todoParamsId]
       );
       const updateTodo = updateTodoRaw.rows[0];
 
@@ -207,6 +208,7 @@ module.exports = {
         id: todoParamsId,
         attributes: {
           description,
+          isDone,
           timestamps: { created: updateTodo.created },
         },
         relationships: null,

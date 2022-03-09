@@ -6,8 +6,6 @@ const isProduction = process.env.NODE_ENV === "production",
     isProduction ? { url: process.env.REDIS_URL } : {}
   );
 
-console.log(isProduction);
-
 (async () => {
   client.on("connect", () => console.log("::> Redis Client Connected"));
   client.on("error", (err) => console.log("<:: Redis Client Error", err));

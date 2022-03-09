@@ -246,7 +246,7 @@ module.exports = {
         `CREATE TABLE todos_${id.replace(
           /-/g,
           "_"
-        )}(todo_uid UUID NOT NULL PRIMARY KEY, created TIMESTAMP NOT NULL, description VARCHAR(255) NOT NULL)`
+        )}(todo_uid UUID NOT NULL PRIMARY KEY, created TIMESTAMP NOT NULL, description VARCHAR(255) NOT NULL, is_done BOOLEAN)`
       );
       await client.query("COMMIT");
 
